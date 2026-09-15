@@ -1,1 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TruthLens — Misinformation Triage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: '#111111',
+            lens: '#06b6d4',
+            mist: '#f4f1ea'
+          },
+          fontFamily: {
+            comic: ['Comic Neue', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            marker: ['Permanent Marker', 'cursive']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { min-height: 100vh; background-image: radial-gradient(rgba(0,0,0,.09) 1px, transparent 1px); background-size: 14px 14px; }
+    .claim-card { transition: transform .14s ease, box-shadow .14s ease, background-color .14s ease; }
+    .modal-backdrop { backdrop-filter: grayscale(.2); }
+    ::selection { background: #facc15; color: #111111; }
+  </style>
+</head>
+<body class="bg-mist font-comic text-ink antialiased">
+  <header class="sticky top-0 z-30 border-4 border-black bg-[#f4f1ea]/95 shadow-[0px_5px_0px_0px_rgba(0,0,0,1)] backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <a href="#top" class="flex items-center gap-3" aria-label="TruthLens home">
+        <span class="grid h-11 w-11 -rotate-3 place-items-center border-4 border-black bg-[#facc15] text-xl text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">◉</span>
+        <span>
+          <span class="block font-marker text-xl leading-none tracking-wide text-ink">TruthLens</span>
+          <span class="mt-1 block text-[10px] font-bold uppercase tracking-[.16em] text-black/60">Misinformation triage</span>
+        </span>
+      </a>
+      <a href="#submit" class="border-4 border-black bg-cyan-400 px-4 py-2 text-sm font-bold text-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-cyan-300 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[5px] active:translate-y-[5px] active:shadow-none focus:outline-none focus:ring-4 focus:ring-cyan-500/40">Submit a claim</a>
+    </div>
+  </header>
 
+  <main id="top" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+    <section class="relative mb-10 overflow-hidden border-4 border-black bg-blue-500 px-6 py-8 text-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:px-9 sm:py-10" style="background-image: url('city-banner.png'); background-size: cover;">
+      <div class="grid items-center gap-8 lg:grid-cols-2">
+        <div class="relative">
+          <p class="mb-4 inline-flex -rotate-2 border-4 border-black bg-[#facc15] px-3 py-1 text-xs font-bold uppercase tracking-wide text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Community fact-checking workspace</p>
+          <h1 class="font-marker text-3xl leading-tight tracking-wide text-white sm:text-4xl" style="text-shadow: 4px 4px 0 #000;">See the signals before a claim spreads.</h1>
+          <p class="mt-3 max-w-2xl text-base leading-7 text-white" style="text-shadow: 2px 2px 0 #000;">Submit viral posts, spot common risk patterns, and guide each claim through a transparent review workflow.</p>
+
+          <div class="mt-7 grid grid-cols-3 gap-3 sm:gap-5" aria-label="Claim statistics">
+            <div class="border-4 border-black bg-[#f4f1ea] p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4"><p id="totalCount" class="font-marker text-2xl">0</p><p class="mt-1 text-xs font-bold uppercase tracking-wide text-black/60">Total claims</p></div>
+            <div class="border-4 border-black bg-cyan-300 p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4"><p id="unverifiedCount" class="font-marker text-2xl">0</p><p class="mt-1 text-xs font-bold uppercase tracking-wide text-black/60">Awaiting review</p></div>
+            <div class="-rotate-1 border-4 border-black bg-[#facc15] p-3 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:p-4"><p id="highRiskCount" class="font-marker text-2xl text-red-600">0</p><p class="mt-1 text-xs font-bold uppercase tracking-wide text-black/60">High-risk signals</p></div>
+          </div>
+        </div>
+        <div class="hidden lg:block" aria-hidden="true"></div>
+      </div>
+
+      <img src="anime-boy.png" alt="Fact Checker" class="absolute bottom-0 right-0 h-64 object-contain" />
+      <img src="facts-not-rumors.png" alt="Facts Not Rumors" class="absolute top-4 right-64 h-32 rotate-6" />
+      <img src="check-sources.png" alt="Checklist" class="absolute top-4 right-4 h-48" />
+    </section>
+
+    <section id="submit" class="mb-12 scroll-mt-24 border-4 border-black bg-white p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:p-7" aria-labelledby="submit-heading">
+      <img src="claim-matters.png" class="h-24 mx-auto -mt-12 z-10 relative" />
+      <div class="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p class="inline-flex -rotate-2 border-4 border-black bg-[#facc15] px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">New report</p>
+          <h2 id="submit-heading" class="mt-3 font-marker text-2xl leading-none text-ink">Submit a claim</h2>
+          <p class="mt-2 text-sm leading-6 text-black/65">Paste the text as it appeared in the viral post. Analysis happens instantly.</p>
+        </div>
+        <span class="hidden rotate-2 border-4 border-black bg-fuchsia-300 px-3 py-1 text-xs font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:inline">No account required</span>
+      </div>
+
+      <form id="claimForm" class="grid gap-4 md:grid-cols-12" novalidate>
+        <div class="md:col-span-12">
+          <label for="claimText" class="mb-1.5 block text-sm font-bold text-black">Viral post text <span class="text-red-600">*</span></label>
+          <textarea id="claimText" required rows="4" maxlength="2000" placeholder="Example: BREAKING! Share before deleted..." class="w-full resize-y border-4 border-black bg-[#fffdf7] px-3 py-2.5 text-sm leading-6 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition placeholder:text-black/35 focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"></textarea>
+          <div class="mt-2 flex justify-between text-xs font-bold text-black/55"><span>URLs help reviewers trace original sources.</span><span id="characterCount">0 / 2000</span></div>
+        </div>
+
+        <div class="md:col-span-4">
+          <label for="platform" class="mb-1.5 block text-sm font-bold text-black">Source platform</label>
+          <select id="platform" class="w-full border-4 border-black bg-[#fffdf7] px-3 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <option>WhatsApp</option><option>X</option><option>Instagram</option><option>Other</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-4">
+          <label for="category" class="mb-1.5 block text-sm font-bold text-black">Category</label>
+          <select id="category" class="w-full border-4 border-black bg-[#fffdf7] px-3 py-2.5 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <option>Politics</option><option>Health</option><option>Finance</option><option>Other</option>
+          </select>
+        </div>
+
+        <div class="flex items-end md:col-span-4">
+          <button type="submit" class="w-full border-4 border-black bg-cyan-400 px-4 py-2.5 text-sm font-bold text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:bg-cyan-300 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[6px] active:translate-y-[6px] active:shadow-none focus:outline-none focus:ring-4 focus:ring-cyan-500/40">Analyze &amp; add to feed</button>
+        </div>
+
+        <p id="formError" class="hidden text-sm font-bold text-red-600 md:col-span-12" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="feed" class="scroll-mt-24" aria-labelledby="feed-heading">
+      <div class="mb-5 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="inline-flex rotate-1 border-4 border-black bg-fuchsia-300 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">Public feed</p>
+          <h2 id="feed-heading" class="mt-3 font-marker text-3xl leading-none tracking-wide text-ink">Claims needing context</h2>
+          <p id="feedDescription" class="mt-2 text-sm font-bold leading-6 text-black/60">Ordered by highest risk signal first.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 sm:w-[360px]">
+          <div>
+            <label for="categoryFilter" class="mb-1 block text-xs font-bold uppercase tracking-wide text-black/60">Category</label>
+            <select id="categoryFilter" class="w-full border-4 border-black bg-white px-3 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <option value="All">All categories</option><option>Politics</option><option>Health</option><option>Finance</option><option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="statusFilter" class="mb-1 block text-xs font-bold uppercase tracking-wide text-black/60">Status</label>
+            <select id="statusFilter" class="w-full border-4 border-black bg-white px-3 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <option value="All">All statuses</option><option>Unverified</option><option>Verified True</option><option>Verified False</option><option>Misleading</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="claimList" class="space-y-4" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="pointer-events-none fixed bottom-5 left-1/2 z-50 hidden -translate-x-1/2 border-4 border-black bg-[#facc15] px-4 py-3 text-sm font-bold text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]" role="status"></div>
+
+  <div id="detailModal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center bg-black/35 p-4" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-4 border-black bg-[#f4f1ea] shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+      <div class="flex items-start justify-between border-b-4 border-black px-5 py-4 sm:px-6">
+        <div>
+          <p class="inline-flex -rotate-2 border-4 border-black bg-cyan-300 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">Claim detail</p>
+          <h2 id="modalTitle" class="mt-3 font-marker text-2xl leading-none text-ink">Full submission</h2>
+        </div>
+        <button id="closeModal" class="grid h-10 w-10 place-items-center border-4 border-black bg-red-400 text-xl font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none" aria-label="Close detail view">×</button>
+      </div>
+      <div id="modalContent" class="p-5 sm:p-6"></div>
+    </div>
+  </div>
+
+  <script>
+    let claims = [
+      { id: 1, text: 'BREAKING: The city will shut down all banks tomorrow. SHARE BEFORE DELETED!', platform: 'WhatsApp', category: 'Finance', status: 'Unverified', note: '', submittedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString() },
+      { id: 2, text: 'A new study shows a daily 10 minute walk may support heart health: https://www.who.int/news-room/fact-sheets/detail/physical-activity', platform: 'Instagram', category: 'Health', status: 'Verified True', note: 'The linked guidance supports regular physical activity; the wording is reasonable.', submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString() },
+      { id: 3, text: 'SHOCKING! ELECTION RESULTS HAVE BEEN CHANGED OVERNIGHT', platform: 'X', category: 'Politics', status: 'Misleading', note: 'No official result update supports this claim.', submittedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString() }
+    ];
+    let activeClaimId = null;
+    let toastTimer;
+
+    const statusStyles = {
+      'Unverified': '-rotate-1 bg-[#facc15] text-black',
+      'Verified True': 'rotate-1 bg-emerald-400 text-black',
+      'Verified False': '-rotate-1 bg-red-500 text-[#fffdf7]',
+      'Misleading': 'rotate-3 bg-fuchsia-300 text-black'
+    };
+
+    function getFlags(text) {
+      const flags = [];
+      const normalized = text.toLowerCase();
+
+      if (['breaking', 'shocking', 'share before deleted'].some(term => normalized.includes(term))) flags.push('Sensational');
+
+      const letters = text.match(/[a-z]/gi) || [];
+      const uppercase = text.match(/[A-Z]/g) || [];
+
+      if (letters.length && uppercase.length / letters.length > 0.5) flags.push('Shouting');
+      if (!/(https?:\/\/|www\.)\S+/i.test(text)) flags.push('Unsourced');
+
+      return flags;
+    }
+
+    function getRisk(claim) {
+      const count = getFlags(claim.text).length;
+      if (count >= 2) return { label: 'High Risk', classes: '-rotate-2 border-4 border-black bg-red-500 text-[#fffdf7] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', score: count };
+      if (count === 1) return { label: 'Needs context', classes: 'rotate-1 border-4 border-black bg-[#facc15] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', score: count };
+      return { label: 'Low signal', classes: 'border-4 border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]', score: 0 };
+    }
+
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+    }
+
+    function formatTime(iso) {
+      return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+    }
+
+    function statusBadge(status) {
+      return `<span class="inline-flex items-center border-4 border-black px-2.5 py-1 text-xs font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${statusStyles[status]}">${escapeHTML(status)}</span>`;
+    }
+
+    function flagsHTML(flags) {
+      return flags.length
+        ? flags.map(flag => `<span class="-rotate-1 border-4 border-black bg-red-500 px-2 py-1 text-xs font-bold text-[#fffdf7] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">${flag}</span>`).join('')
+        : '<span class="border-4 border-black bg-white px-2 py-1 text-xs font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">No automated flags</span>';
+    }
+
+    function renderClaims() {
+      const category = document.getElementById('categoryFilter').value;
+      const status = document.getElementById('statusFilter').value;
+
+      const shown = claims
+        .filter(claim => (category === 'All' || claim.category === category) && (status === 'All' || claim.status === status))
+        .sort((a, b) => getRisk(b).score - getRisk(a).score || new Date(b.submittedAt) - new Date(a.submittedAt));
+
+      const list = document.getElementById('claimList');
+
+      document.getElementById('feedDescription').textContent = `${shown.length} ${shown.length === 1 ? 'claim' : 'claims'} shown · ordered by highest risk signal first.`;
+
+      if (!shown.length) {
+        list.innerHTML = `<div class="border-4 border-dashed border-black bg-white px-6 py-12 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"><p class="font-marker text-xl text-black">No claims match these filters.</p><p class="mt-2 text-sm font-bold leading-6 text-black/60">Try another category or status.</p></div>`;
+        return;
+      }
+
+      list.innerHTML = shown.map(claim => {
+        const flags = getFlags(claim.text);
+        const risk = getRisk(claim);
+        const preview = claim.text.length > 265 ? `${claim.text.slice(0, 265)}…` : claim.text;
+
+        const review = claim.status === 'Unverified' ? `
+          <div class="mt-5 grid gap-3 border-4 border-black bg-[#facc15] p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:grid-cols-[190px_1fr]" data-review-controls="${claim.id}">
+            <select class="review-status border-4 border-black bg-white px-3 py-2 text-sm font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]" data-id="${claim.id}" aria-label="Set verification status">
+              <option value="" selected>Review status…</option>
+              <option value="Verified True">Verified True</option>
+              <option value="Verified False">Verified False</option>
+              <option value="Misleading">Misleading</option>
+            </select>
+            <input class="review-note border-4 border-black bg-white px-3 py-2 text-sm font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none placeholder:text-black/35 transition focus:-translate-x-[1px] focus:-translate-y-[1px] focus:bg-cyan-50 focus:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]" data-id="${claim.id}" value="${escapeHTML(claim.note)}" maxlength="280" placeholder="Short reviewer note (optional)" aria-label="Reviewer note" />
+          </div>` : claim.note ? `<p class="mt-5 border-4 border-black bg-[#fffdf7] p-3 text-sm font-bold leading-6 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"><span class="font-marker text-base">Reviewer note:</span> ${escapeHTML(claim.note)}</p>` : '';
+
+        return `
+          <article class="claim-card cursor-pointer border-4 border-black bg-white p-5 shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:bg-[#fffdf7] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:ring-4 focus:ring-cyan-500/50" data-claim-id="${claim.id}" tabindex="0" role="button" aria-label="Open details for claim">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex flex-wrap items-center gap-2">
+                ${statusBadge(claim.status)}
+                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${risk.classes}">${risk.label}</span>
+              </div>
+              <span class="text-xs font-bold uppercase tracking-wide text-black/50">${formatTime(claim.submittedAt)}</span>
+            </div>
+
+            <p class="mt-4 whitespace-pre-wrap text-[15px] font-bold leading-7 text-black">${escapeHTML(preview)}</p>
+
+            <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-3 text-xs font-bold text-black/60">
+              <span class="-rotate-1 border-4 border-black bg-cyan-200 px-2 py-1 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">${escapeHTML(claim.platform)}</span>
+              <span class="rotate-1 border-4 border-black bg-white px-2 py-1 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">${escapeHTML(claim.category)}</span>
+              <span class="ml-1 font-marker text-sm text-black">Flags:</span>
+              ${flagsHTML(flags)}
+            </div>
+
+            ${review}
+            <p class="mt-5 font-marker text-sm text-cyan-700">Open full detail <span aria-hidden="true">→</span></p>
+          </article>`;
+      }).join('');
+    }
+
+    function renderStats() {
+      document.getElementById('totalCount').textContent = claims.length;
+      document.getElementById('unverifiedCount').textContent = claims.filter(claim => claim.status === 'Unverified').length;
+      document.getElementById('highRiskCount').textContent = claims.filter(claim => getRisk(claim).score >= 2).length;
+    }
+
+    function render() {
+      renderStats();
+      renderClaims();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    function openDetail(id) {
+      const claim = claims.find(item => item.id === id);
+      if (!claim) return;
+
+      activeClaimId = id;
+
+      const flags = getFlags(claim.text);
+      const risk = getRisk(claim);
+
+      document.getElementById('modalContent').innerHTML = `
+        <div class="flex flex-wrap gap-2">
+          ${statusBadge(claim.status)}
+          <span class="rounded-full px-2.5 py-1 text-xs font-bold ${risk.classes}">${risk.label}</span>
+        </div>
+
+        <dl class="mt-5 grid grid-cols-2 gap-3 border-4 border-black bg-cyan-200 p-4 text-sm shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:grid-cols-3">
+          <div><dt class="text-xs font-bold uppercase tracking-wide text-black/55">Platform</dt><dd class="mt-1 font-marker text-base text-black">${escapeHTML(claim.platform)}</dd></div>
+          <div><dt class="text-xs font-bold uppercase tracking-wide text-black/55">Category</dt><dd class="mt-1 font-marker text-base text-black">${escapeHTML(claim.category)}</dd></div>
+          <div class="col-span-2 sm:col-span-1"><dt class="text-xs font-bold uppercase tracking-wide text-black/55">Submitted</dt><dd class="mt-1 font-bold text-black">${formatTime(claim.submittedAt)}</dd></div>
+        </dl>
+
+        <div class="mt-6">
+          <h3 class="font-marker text-lg text-black">Full claim text</h3>
+          <p class="mt-2 whitespace-pre-wrap border-4 border-black bg-white p-4 text-sm font-bold leading-7 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">${escapeHTML(claim.text)}</p>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="font-marker text-lg text-black">Automated risk flags</h3>
+          <div class="mt-3 flex flex-wrap gap-3">${flagsHTML(flags)}</div>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="font-marker text-lg text-black">Reviewer note</h3>
+          <p class="mt-2 border-4 border-black bg-[#facc15] p-4 text-sm font-bold leading-7 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">${claim.note ? escapeHTML(claim.note) : 'No reviewer note has been added.'}</p>
+        </div>`;
+
+      const modal = document.getElementById('detailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.getElementById('closeModal').focus();
+    }
+
+    function closeDetail() {
+      document.getElementById('detailModal').classList.add('hidden');
+      document.getElementById('detailModal').classList.remove('flex');
+      activeClaimId = null;
+    }
+
+    document.getElementById('claimForm').addEventListener('submit', event => {
+      event.preventDefault();
+
+      const text = document.getElementById('claimText').value.trim();
+      const error = document.getElementById('formError');
+
+      if (!text) {
+        error.textContent = 'Please enter the text of the viral post.';
+        error.classList.remove('hidden');
+        document.getElementById('claimText').focus();
+        return;
+      }
+
+      error.classList.add('hidden');
+
+      const claim = {
+        id: Date.now(),
+        text,
+        platform: document.getElementById('platform').value,
+        category: document.getElementById('category').value,
+        status: 'Unverified',
+        note: '',
+        submittedAt: new Date().toISOString()
+      };
+
+      claims.push(claim);
+      event.target.reset();
+      document.getElementById('characterCount').textContent = '0 / 2000';
+      document.getElementById('categoryFilter').value = 'All';
+      document.getElementById('statusFilter').value = 'All';
+
+      render();
+      showToast(`Claim added — ${getRisk(claim).label}.`);
+      document.getElementById('feed').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    document.getElementById('claimText').addEventListener('input', event => {
+      document.getElementById('characterCount').textContent = `${event.target.value.length} / 2000`;
+      if (event.target.value.trim()) document.getElementById('formError').classList.add('hidden');
+    });
+
+    document.getElementById('categoryFilter').addEventListener('change', renderClaims);
+    document.getElementById('statusFilter').addEventListener('change', renderClaims);
+
+    document.getElementById('claimList').addEventListener('input', event => {
+      if (!event.target.classList.contains('review-note')) return;
+      const claim = claims.find(item => item.id === Number(event.target.dataset.id));
+      if (claim) claim.note = event.target.value;
+    });
+
+    document.getElementById('claimList').addEventListener('change', event => {
+      if (!event.target.classList.contains('review-status') || !event.target.value) return;
+
+      const claim = claims.find(item => item.id === Number(event.target.dataset.id));
+      if (!claim) return;
+
+      const noteField = document.querySelector(`.review-note[data-id="${claim.id}"]`);
+      if (noteField) claim.note = noteField.value.trim();
+
+      claim.status = event.target.value;
+      render();
+      showToast(`Claim marked as ${claim.status}.`);
+    });
+
+    document.getElementById('claimList').addEventListener('click', event => {
+      if (event.target.closest('[data-review-controls]')) return;
+      const card = event.target.closest('[data-claim-id]');
+      if (card) openDetail(Number(card.dataset.claimId));
+    });
+
+    document.getElementById('claimList').addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('[data-review-controls]')) {
+        const card = event.target.closest('[data-claim-id]');
+        if (card) {
+          event.preventDefault();
+          openDetail(Number(card.dataset.claimId));
+        }
+      }
+    });
+
+    document.getElementById('closeModal').addEventListener('click', closeDetail);
+    document.getElementById('detailModal').addEventListener('click', event => {
+      if (event.target === event.currentTarget) closeDetail();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && activeClaimId !== null) closeDetail();
+    });
+
+    render();
+  </script>
+</body>
+</html>
